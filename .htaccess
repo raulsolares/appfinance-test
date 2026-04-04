@@ -1,0 +1,36 @@
+# 1. Configuración de Seguridad Básica
+Options -Indexes
+ServerSignature Off
+
+# 2. Protección de carpetas sensibles
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    
+    # Bloquear acceso directo a carpetas de lógica y configuración
+    RewriteRule ^(config|src|sql|logs)/ - [F,L]
+    
+    # Bloquear archivos de configuración y base de datos
+    RewriteRule \.(sql|ini|log|sh|bak)$ - [F,L]
+</IfModule>
+
+# 3. URLs Limpias (Ocultar .php)
+<IfModule mod_rewrite.c>
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteCond %{REQUEST_FILENAME}\.php -f
+    RewriteRule ^([^\.]+)$ $1.php [NC,L]
+</IfModule>
+
+# 4. Forzar HTTPS (Recomendado para finanzas en cPanel)
+# Descomenta las siguientes 3 líneas si ya tienes SSL instalado en tu cPanel
+# RewriteCond %{HTTPS} off
+# RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+
+# 5. Configuración para PWA (Caché y tipos de archivo)
+<IfModule mod_expires.c>
+    ExpiresActive On
+    ExpiresByType image/png "access plus 1 month"
+    ExpiresByType image/jpeg "access plus 1 month"
+    ExpiresByType text/css "access plus 1 week"
+    ExpiresByType application/javascript "access plus 1 week"
+    ExpiresByType application/json "access plus 0 seconds"
+</IfModule>
