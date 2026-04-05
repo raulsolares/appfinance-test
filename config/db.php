@@ -3,6 +3,10 @@
  * Configuración de Base de Datos y Rutas Dinámicas
  */
 
+// ACTIVAR ERRORES PARA DEPURACIÓN (Borrar esto al terminar)
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
+
 // Parámetros de conexión (Cámbialos por tus datos de cPanel)
 define('DB_HOST', 'localhost');
 define('DB_NAME', 'kxussecn_finappdw');

@@ -5,6 +5,7 @@ ServerSignature Off
 # 2. Protección de carpetas sensibles
 <IfModule mod_rewrite.c>
     RewriteEngine On
+    RewriteBase /proyectos/app-finanzas-2/
     
     # Bloquear acceso directo a carpetas de lógica y configuración
     RewriteRule ^(config|src|sql|logs)/ - [F,L]
