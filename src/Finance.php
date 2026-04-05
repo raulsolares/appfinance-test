@@ -96,7 +96,45 @@ class Finance {
     }
 
     /**
-     * Obtener categorías del usuario
+     * Obtener gastos agrupados por categoría para un mes específico
+     */
+    public function getExpensesByCategory($month = null, $year = null) {
+        $month = $month ?? date('m');
+        $year = $year ?? date('Y');
+        
+        $stmt = $this->pdo->prepare("
+            SELECT c.name, c.color, SUM(t.amount) as total 
+            FROM transactions t
+            JOIN categories c ON t.category_id = c.id
+            WHERE t.user_id = ? AND t.type = 'expense' 
+            AND MONTH(t.date) = ? AND YEAR(t.date) = ?
+            GROUP BY c.id
+        ");
+        $stmt->execute([$this->userId, $month, $year]);
+        return $stmt->fetchAll();
+    }
+
+    /**
+     * Obtener ingresos vs gastos de los últimos 6 meses
+     */
+    public function getMonthlyComparison() {
+        $stmt = $this->pdo->prepare("
+            SELECT 
+                DATE_FORMAT(date, '%Y-%m') as month,
+                SUM(CASE WHEN type = 'income' THEN amount ELSE 0 END) as income,
+                SUM(CASE WHEN type = 'expense' THEN amount ELSE 0 END) as expense
+            FROM transactions
+            WHERE user_id = ?
+            GROUP BY month
+            ORDER BY month DESC
+            LIMIT 6
+        ");
+        $stmt->execute([$this->userId]);
+        return array_reverse($stmt->fetchAll());
+    }
+
+    /**
+     * Obtener todas las categorías del usuario
      */
     public function getCategories($type = null) {
         $sql = "SELECT * FROM categories WHERE user_id = ?";
