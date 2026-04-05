@@ -9,54 +9,77 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         header('Location: index.php');
         exit;
     } else {
-        $error = 'Usuario o contraseña incorrectos';
+        $error = 'Credenciales no válidas';
     }
 }
 
-// Si ya está logueado, ir al dashboard
-if (Auth::check()) {
-    header('Location: index.php');
-    exit;
-}
+if (Auth::check()) { header('Location: index.php'); exit; }
 ?>
 <!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login - Finanzas Pro</title>
+    <title>Acceso - Finanzas Pro Premium</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
     <style>
-        body { background-color: #0f172a; color: #f8fafc; }
+        body { 
+            font-family: 'Inter', sans-serif; 
+            background: radial-gradient(circle at center, #1e1b4b, #020617);
+            min-height: 100vh;
+        }
+        .glass { 
+            background: rgba(30, 41, 59, 0.4); 
+            backdrop-filter: blur(20px); 
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
     </style>
 </head>
-<body class="flex items-center justify-center min-h-screen p-4">
-    <div class="w-full max-w-md bg-slate-800 p-8 rounded-2xl shadow-xl">
-        <h1 class="text-3xl font-bold mb-2 text-center">Finanzas Pro</h1>
-        <p class="text-slate-400 text-center mb-8">Ingresa tus credenciales</p>
+<body class="flex items-center justify-center p-6">
+    <div class="w-full max-w-sm glass rounded-[40px] p-10 shadow-2xl relative overflow-hidden">
+        <!-- Decoración -->
+        <div class="absolute -top-20 -right-20 w-40 h-40 bg-indigo-600/20 rounded-full blur-3xl"></div>
+        <div class="absolute -bottom-20 -left-20 w-40 h-40 bg-emerald-600/10 rounded-full blur-3xl"></div>
 
-        <?php if ($error): ?>
-            <div class="bg-red-500/20 text-red-400 p-3 rounded-lg mb-6 text-sm border border-red-500/50">
-                <?php echo $error; ?>
+        <div class="relative z-10">
+            <div class="flex flex-col items-center mb-10">
+                <div class="w-16 h-16 bg-gradient-to-tr from-indigo-600 to-emerald-500 rounded-2xl flex items-center justify-center mb-4 shadow-xl shadow-indigo-600/20">
+                    <i data-lucide="shield-check" class="w-8 h-8 text-white"></i>
+                </div>
+                <h1 class="text-3xl font-black tracking-tighter text-white">Finanzas Pro</h1>
+                <p class="text-[10px] font-bold text-slate-500 uppercase tracking-[0.3em] mt-1">Versión Premium</p>
             </div>
-        <?php endif; ?>
 
-        <form method="POST" class="space-y-6">
-            <div>
-                <label class="block text-sm font-medium mb-2">Usuario</label>
-                <input type="text" name="username" required 
-                    class="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 focus:outline-none focus:border-blue-500">
-            </div>
-            <div>
-                <label class="block text-sm font-medium mb-2">Contraseña</label>
-                <input type="password" name="password" required 
-                    class="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 focus:outline-none focus:border-blue-500">
-            </div>
-            <button type="submit" 
-                class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-lg transition-colors">
-                Entrar
-            </button>
-        </form>
+            <?php if ($error): ?>
+                <div class="bg-red-500/10 border border-red-500/20 text-red-400 p-4 rounded-2xl mb-8 text-xs font-bold text-center animate-shake">
+                    <?php echo strtoupper($error); ?>
+                </div>
+            <?php endif; ?>
+
+            <form method="POST" class="space-y-6">
+                <div class="space-y-2">
+                    <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Usuario</label>
+                    <input type="text" name="username" required placeholder="tu_usuario"
+                        class="w-full bg-slate-900/50 border border-white/5 rounded-2xl p-4 text-sm font-bold text-white focus:ring-2 ring-indigo-500 outline-none transition-all placeholder:text-slate-800">
+                </div>
+                <div class="space-y-2">
+                    <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Contraseña</label>
+                    <input type="password" name="password" required placeholder="••••••••"
+                        class="w-full bg-slate-900/50 border border-white/5 rounded-2xl p-4 text-sm font-bold text-white focus:ring-2 ring-indigo-500 outline-none transition-all placeholder:text-slate-800">
+                </div>
+                <button type="submit" 
+                    class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-black py-5 rounded-2xl transition-all shadow-xl shadow-indigo-600/30 text-xs uppercase tracking-widest mt-4">
+                    Iniciar Sesión
+                </button>
+            </form>
+            
+            <p class="text-center text-[10px] font-bold text-slate-600 uppercase tracking-widest mt-10">
+                &copy; <?php echo date('Y'); ?> PROYECTO FINANZAS
+            </p>
+        </div>
     </div>
+    <script>lucide.createIcons();</script>
 </body>
 </html>

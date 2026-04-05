@@ -61,6 +61,31 @@ CREATE TABLE IF NOT EXISTS `debts` (
   `status` ENUM('pending', 'paid', 'partially_paid') DEFAULT 'pending',
   `due_date` DATE DEFAULT NULL,
   FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-SET FOREIGN_KEY_CHECKS = 1;
+  -- Tabla de Presupuestos (Control de Gasto por Categoría)
+  CREATE TABLE IF NOT EXISTS `budgets` (
+  `id` INT AUTO_INCREMENT PRIMARY KEY,
+  `user_id` INT NOT NULL,
+  `category_id` INT NOT NULL,
+  `amount_limit` DECIMAL(15,2) NOT NULL,
+  `month` INT NOT NULL,
+  `year` INT NOT NULL,
+  FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE,
+  FOREIGN KEY (`category_id`) REFERENCES `categories`(`id`) ON DELETE CASCADE
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+  -- Tabla de Metas de Ahorro
+  CREATE TABLE IF NOT EXISTS `savings_goals` (
+  `id` INT AUTO_INCREMENT PRIMARY KEY,
+  `user_id` INT NOT NULL,
+  `name` VARCHAR(100) NOT NULL,
+  `target_amount` DECIMAL(15,2) NOT NULL,
+  `current_amount` DECIMAL(15,2) DEFAULT 0.00,
+  `deadline` DATE DEFAULT NULL,
+  `color` VARCHAR(20) DEFAULT '#8b5cf6',
+  `icon` VARCHAR(50) DEFAULT 'target',
+  FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+  SET FOREIGN_KEY_CHECKS = 1;

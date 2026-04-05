@@ -1,133 +1,151 @@
 <?php
 require_once __DIR__ . '/../config/db.php';
 require_once __DIR__ . '/../src/Auth.php';
-
-// Si no está logueado, ir al login
-if (!Auth::check()) {
-    header('Location: login.php');
-    exit;
-}
-
 require_once __DIR__ . '/../src/Finance.php';
+
+if (!Auth::check()) { header('Location: login.php'); exit; }
+
 $finance = new Finance($pdo, Auth::userId());
 $totalBalance = $finance->getTotalBalance();
 $accounts = $finance->getAccounts();
-$expensesByCategory = $finance->getExpensesByCategory();
+$recent = $finance->getRecentTransactions(5);
+$budgets = $finance->getBudgets();
+$healthScore = $finance->getFinancialHealthScore();
 
-// Título de la página
-$pageTitle = "Dashboard - Finanzas Pro";
+$pageTitle = "Dashboard";
+include __DIR__ . '/includes/layout_top.php';
 ?>
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?php echo $pageTitle; ?></title>
-    <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#0f172a">
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <style>
-        body { background-color: #0f172a; color: #f8fafc; }
-        .card { background-color: #1e293b; border-radius: 1rem; padding: 1.5rem; }
-    </style>
-</head>
-<body class="p-4 mb-20">
-    <!-- Header -->
-    <header class="flex justify-between items-center mb-8">
-        <div>
-            <h1 class="text-2xl font-bold">Hola, <?php echo htmlspecialchars($_SESSION['username']); ?></h1>
-            <p class="text-slate-400">Tu balance total</p>
-        </div>
-        <div class="text-3xl font-bold text-emerald-400">
-            $<?php echo number_format($totalBalance, 2); ?>
-        </div>
-    </header>
 
-    <!-- Gráfica Resumen -->
-    <div class="card mb-6">
-        <h2 class="text-lg font-semibold mb-4">Gastos por Categoría (Mes)</h2>
-        <div class="h-64">
-            <canvas id="expensesChart"></canvas>
+<!-- Header Premium -->
+<div class="flex justify-between items-center mb-10 px-2 mt-4">
+    <div class="flex items-center space-x-4">
+        <div class="w-12 h-12 rounded-2xl bg-gradient-to-tr from-indigo-600 to-emerald-500 p-[2px]">
+            <div class="w-full h-full bg-slate-900 rounded-2xl flex items-center justify-center">
+                <i data-lucide="user" class="w-6 h-6 text-indigo-400"></i>
+            </div>
+        </div>
+        <div>
+            <h1 class="text-xl font-bold tracking-tight"><?php echo htmlspecialchars($_SESSION['username']); ?></h1>
+            <p class="text-xs text-slate-400 font-medium">Finanzas Pro Premium</p>
         </div>
     </div>
+    <div class="flex space-x-3">
+        <button class="w-10 h-10 glass rounded-xl flex items-center justify-center text-slate-300">
+            <i data-lucide="bell" class="w-5 h-5"></i>
+        </button>
+    </div>
+</div>
 
-    <!-- Cuentas y Tarjetas -->
-    <section class="mb-8">
-        <div class="flex justify-between items-center mb-4">
-            <h2 class="text-xl font-semibold">Tus Cuentas</h2>
-            <a href="settings.php" class="text-sm text-blue-400">+ Gestionar</a>
+<!-- Card de Salud Financiera -->
+<div class="glass rounded-[32px] p-6 mb-10 relative overflow-hidden premium-card">
+    <div class="relative z-10 flex items-center justify-between">
+        <div class="space-y-4">
+            <p class="text-sm font-semibold text-indigo-200 tracking-wider uppercase">Balance Total</p>
+            <h2 class="text-4xl font-extrabold tracking-tighter">$<?php echo number_format($totalBalance, 2); ?></h2>
+            <div class="flex items-center space-x-2 text-emerald-400 text-xs font-bold bg-emerald-400/10 px-3 py-1.5 rounded-full w-fit">
+                <i data-lucide="trending-up" class="w-3.5 h-3.5"></i>
+                <span>+12.5% este mes</span>
+            </div>
         </div>
-        <div class="grid grid-cols-1 gap-4">
-            <?php foreach ($accounts as $acc): ?>
-            <div class="card flex justify-between items-center" style="border-left: 4px solid <?php echo $acc['color']; ?>">
-                <div>
-                    <p class="font-medium"><?php echo htmlspecialchars($acc['name']); ?></p>
-                    <p class="text-xs text-slate-400 uppercase"><?php echo $acc['type']; ?></p>
+        
+        <!-- Círculo de Score -->
+        <div class="relative flex items-center justify-center w-24 h-24">
+            <svg class="w-full h-full transform -rotate-90">
+                <circle cx="48" cy="48" r="40" stroke="currentColor" stroke-width="8" fill="transparent" class="text-slate-800" />
+                <circle cx="48" cy="48" r="40" stroke="currentColor" stroke-width="8" fill="transparent" 
+                        class="text-emerald-500" stroke-dasharray="251.2" 
+                        stroke-dashoffset="<?php echo 251.2 - (251.2 * $healthScore / 100); ?>" 
+                        stroke-linecap="round" />
+            </svg>
+            <div class="absolute inset-0 flex flex-col items-center justify-center">
+                <span class="text-xl font-black"><?php echo $healthScore; ?></span>
+                <span class="text-[8px] uppercase tracking-tighter text-slate-400 font-bold">Score</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Tus Cuentas (Scroll Horizontal) -->
+<section class="mb-10">
+    <div class="flex justify-between items-end mb-6 px-2">
+        <h3 class="text-lg font-bold tracking-tight">Cuentas</h3>
+        <a href="settings.php" class="text-xs font-bold text-indigo-400 uppercase tracking-widest">Ver todo</a>
+    </div>
+    <div class="flex overflow-x-auto gap-4 pb-4 px-2 hide-scrollbar">
+        <?php foreach ($accounts as $acc): ?>
+        <div class="flex-none w-56 h-32 rounded-3xl p-5 relative overflow-hidden glass transition-transform active:scale-95" 
+             style="border-left: 4px solid <?php echo $acc['color']; ?>">
+            <p class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1"><?php echo $acc['type']; ?></p>
+            <p class="font-bold text-base mb-4 truncate"><?php echo htmlspecialchars($acc['name']); ?></p>
+            <p class="text-xl font-black tracking-tighter">$<?php echo number_format($acc['balance'], 2); ?></p>
+            <div class="absolute -right-4 -bottom-4 w-16 h-16 bg-white/5 rounded-full blur-xl"></div>
+        </div>
+        <?php endforeach; ?>
+    </div>
+</section>
+
+<!-- Transacciones Recientes -->
+<section class="mb-10 px-2">
+    <div class="flex justify-between items-end mb-6">
+        <h3 class="text-lg font-bold tracking-tight">Recientes</h3>
+        <a href="reports.php" class="text-xs font-bold text-indigo-400 uppercase tracking-widest">Historial</a>
+    </div>
+    <div class="space-y-3">
+        <?php if (empty($recent)): ?>
+            <p class="text-center text-slate-500 py-8 text-sm">No hay movimientos recientes</p>
+        <?php endif; ?>
+        <?php foreach ($recent as $t): ?>
+        <div class="glass rounded-2xl p-4 flex items-center justify-between group transition-all hover:bg-slate-800/40">
+            <div class="flex items-center space-x-4">
+                <div class="w-12 h-12 rounded-xl flex items-center justify-center text-white shadow-lg" 
+                     style="background-color: <?php echo $t['category_color'] ?? '#334155'; ?>33; color: <?php echo $t['category_color'] ?? '#94a3b8'; ?>">
+                    <i data-lucide="<?php echo $t['category_icon'] ?? 'credit-card'; ?>" class="w-6 h-6"></i>
                 </div>
-                <div class="text-lg font-bold">
-                    $<?php echo number_format($acc['balance'], 2); ?>
+                <div>
+                    <p class="text-sm font-bold truncate max-w-[120px]"><?php echo htmlspecialchars($t['description'] ?: ($t['category_name'] ?: 'Transacción')); ?></p>
+                    <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest"><?php echo $t['account_name']; ?></p>
                 </div>
             </div>
-            <?php endforeach; ?>
+            <div class="text-right">
+                <p class="text-sm font-black tracking-tight <?php echo $t['type'] == 'income' ? 'text-emerald-400' : ($t['type'] == 'transfer' ? 'text-indigo-400' : 'text-slate-100'); ?>">
+                    <?php echo $t['type'] == 'income' ? '+' : ($t['type'] == 'transfer' ? '' : '-'); ?>
+                    $<?php echo number_format($t['amount'], 2); ?>
+                </p>
+                <p class="text-[10px] font-medium text-slate-500"><?php echo date('d M', strtotime($t['date'])); ?></p>
+            </div>
         </div>
-    </section>
+        <?php endforeach; ?>
+    </div>
+</section>
 
-    <!-- Barra de Navegación Inferior (Mobile First) -->
-    <nav class="fixed bottom-0 left-0 right-0 bg-slate-900 border-t border-slate-800 flex justify-around p-4 z-50">
-        <a href="index.php" class="text-blue-400 text-center">
-            <svg class="w-6 h-6 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
-            <span class="text-xs">Inicio</span>
-        </a>
-        <a href="add_transaction.php" class="bg-blue-600 rounded-full w-12 h-12 -mt-10 shadow-lg flex items-center justify-center text-white text-2xl font-bold">
-            +
-        </a>
-        <a href="reports.php" class="text-slate-400 text-center">
-            <svg class="w-6 h-6 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
-            <span class="text-xs">Reportes</span>
-        </a>
-        <a href="settings.php" class="text-slate-400 text-center">
-            <svg class="w-6 h-6 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
-            <span class="text-xs">Ajustes</span>
-        </a>
-    </nav>
+<!-- Presupuestos Activos -->
+<?php if (!empty($budgets)): ?>
+<section class="mb-6 px-2 pb-10">
+    <h3 class="text-lg font-bold tracking-tight mb-6">Presupuestos</h3>
+    <div class="grid grid-cols-1 gap-4">
+        <?php foreach ($budgets as $b): ?>
+        <?php 
+            $percent = ($b['current_spent'] / $b['amount_limit']) * 100;
+            $isOver = $percent > 100;
+        ?>
+        <div class="glass rounded-2xl p-4">
+            <div class="flex justify-between items-center mb-3">
+                <div class="flex items-center space-x-2">
+                    <div class="w-2 h-2 rounded-full" style="background-color: <?php echo $b['color']; ?>"></div>
+                    <p class="text-xs font-bold tracking-wide"><?php echo htmlspecialchars($b['name']); ?></p>
+                </div>
+                <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                    $<?php echo number_format($b['current_spent'], 0); ?> / $<?php echo number_format($b['amount_limit'], 0); ?>
+                </p>
+            </div>
+            <div class="w-full h-2 bg-slate-800 rounded-full overflow-hidden">
+                <div class="h-full rounded-full transition-all duration-1000" 
+                     style="width: <?php echo min(100, $percent); ?>%; background-color: <?php echo $isOver ? '#ef4444' : $b['color']; ?>"></div>
+            </div>
+        </div>
+        <?php endforeach; ?>
+    </div>
+</section>
+<?php endif; ?>
 
-    <script>
-        // Registrar Service Worker
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('sw.js', { scope: './' });
-            });
-        }
-
-        // Gráfica Real
-        const ctx = document.getElementById('expensesChart').getContext('2d');
-        const catData = <?php echo json_encode($expensesByCategory); ?>;
-        
-        if (catData.length > 0) {
-            new Chart(ctx, {
-                type: 'doughnut',
-                data: {
-                    labels: catData.map(d => d.name),
-                    datasets: [{
-                        data: catData.map(d => d.total),
-                        backgroundColor: catData.map(d => d.color || '#3b82f6'),
-                        borderWidth: 0
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: { legend: { position: 'bottom', labels: { color: '#f8fafc' } } }
-                }
-            });
-        } else {
-            // Mostrar mensaje si no hay datos
-            ctx.font = "16px sans-serif";
-            ctx.fillStyle = "#94a3b8";
-            ctx.textAlign = "center";
-            ctx.fillText("Sin gastos este mes", ctx.canvas.width/2, ctx.canvas.height/2);
-        }
-    </script>
-</body>
-</html>
+<?php include __DIR__ . '/includes/layout_bottom.php'; ?>

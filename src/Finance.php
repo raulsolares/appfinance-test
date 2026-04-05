@@ -134,6 +134,80 @@ class Finance {
     }
 
     /**
+     * Obtener transacciones recientes con detalle de categoría
+     */
+    public function getRecentTransactions($limit = 5) {
+        $stmt = $this->pdo->prepare("
+            SELECT t.*, c.name as category_name, c.icon as category_icon, c.color as category_color, a.name as account_name
+            FROM transactions t
+            LEFT JOIN categories c ON t.category_id = c.id
+            JOIN accounts a ON t.account_id = a.id
+            WHERE t.user_id = ?
+            ORDER BY t.date DESC, t.id DESC
+            LIMIT ?
+        ");
+        $stmt->execute([$this->userId, $limit]);
+        return $stmt->fetchAll();
+    }
+
+    /**
+     * Calcular Salud Financiera (Score del mes)
+     * Basado en la relación Ingresos/Gastos y Presupuestos
+     */
+    public function getFinancialHealthScore() {
+        $month = date('m');
+        $year = date('Y');
+        
+        $stmt = $this->pdo->prepare("
+            SELECT 
+                SUM(CASE WHEN type = 'income' THEN amount ELSE 0 END) as income,
+                SUM(CASE WHEN type = 'expense' THEN amount ELSE 0 END) as expense
+            FROM transactions 
+            WHERE user_id = ? AND MONTH(date) = ? AND YEAR(date) = ?
+        ");
+        $stmt->execute([$this->userId, $month, $year]);
+        $row = $stmt->fetch();
+        
+        $income = $row['income'] ?? 0;
+        $expense = $row['expense'] ?? 0;
+        
+        if ($income == 0) return $expense > 0 ? 30 : 50;
+        
+        $ratio = ($income - $expense) / $income;
+        $score = 50 + ($ratio * 50); // Escala 0-100
+        
+        return max(0, min(100, round($score)));
+    }
+
+    /**
+     * Obtener Presupuestos activos con el gasto real actual
+     */
+    public function getBudgets($month = null, $year = null) {
+        $month = $month ?? date('m');
+        $year = $year ?? date('Y');
+
+        $stmt = $this->pdo->prepare("
+            SELECT b.*, c.name, c.color, 
+                (SELECT SUM(amount) FROM transactions 
+                 WHERE category_id = b.category_id AND MONTH(date) = b.month AND YEAR(date) = b.year AND type = 'expense') as current_spent
+            FROM budgets b
+            JOIN categories c ON b.category_id = c.id
+            WHERE b.user_id = ? AND b.month = ? AND b.year = ?
+        ");
+        $stmt->execute([$this->userId, $month, $year]);
+        return $stmt->fetchAll();
+    }
+
+    /**
+     * Obtener Metas de Ahorro
+     */
+    public function getSavingsGoals() {
+        $stmt = $this->pdo->prepare("SELECT * FROM savings_goals WHERE user_id = ?");
+        $stmt->execute([$this->userId]);
+        return $stmt->fetchAll();
+    }
+
+    /**
      * Obtener todas las categorías del usuario
      */
     public function getCategories($type = null) {
